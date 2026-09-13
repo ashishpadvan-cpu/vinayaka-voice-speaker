@@ -568,13 +568,20 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/audio-chime.js"></script>
-  <script src="js/celebrity-audio.js"></script>
-  <script src="js/translations.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/sync.js"></script>
-  <script src="js/tts.js"></script>
-  <script src="js/transliterate.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/audio-chime.js?v=4"></script>
+  <script src="js/celebrity-audio.js?v=4"></script>
+  <script src="js/translations.js?v=4"></script>
+  <script src="js/storage.js?v=4"></script>
+  <script src="js/sync.js?v=4"></script>
+  <script src="js/tts.js?v=4"></script>
+  <script src="js/transliterate.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) { r.unregister(); }
+      }).catch(function(){});
+    }
+  </script>
 </body>
 </html>
