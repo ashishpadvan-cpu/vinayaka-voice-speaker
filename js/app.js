@@ -35,7 +35,7 @@ function convertNumberToTeluguWords(num) {
   if (n === 0) return 'సున్నా';
 
   const units = ['', 'ఒక్కటి', 'రెండు', 'మూడు', 'నాలుగు', 'ఐదు', 'ఆరు', 'ఏడు', 'ఎనిమిది', 'తొమ్మిది', 'పది', 'పదకొండు', 'పన్నెండు', 'పదమూడు', 'పద్నాలుగు', 'పదిహేను', 'పదహారు', 'పదిహేడు', 'పద్ధెనిమిది', 'పంతొమ్మిది'];
-  const tens = ['', '', 'ఇరవై', 'ముప్పై', 'నలభై', 'యాభై', 'అరవై', 'దెబ్బై', 'ఎనిమిభై', 'తొంబై'];
+  const tens = ['', '', 'ఇరవై', 'ముప్పై', 'నలభై', 'యాభై', 'అరవై', 'దెబ్బై', 'ఎనుభై', 'తొంబై'];
 
   if (n < 20) return units[n];
   if (n < 100) {
@@ -46,14 +46,22 @@ function convertNumberToTeluguWords(num) {
   if (n < 1000) {
     const h = Math.floor(n / 100);
     const rem = n % 100;
-    const hWord = (h === 1 ? 'నూట' : units[h] + ' వందల');
-    return hWord + (rem > 0 ? ' ' + convertNumberToTeluguWords(rem) : '');
+    if (rem === 0) {
+      return h === 1 ? 'వంద' : units[h] + ' వందలు';
+    } else {
+      const hWord = (h === 1 ? 'నూట' : units[h] + ' వందల');
+      return hWord + ' ' + convertNumberToTeluguWords(rem);
+    }
   }
   if (n < 100000) {
     const th = Math.floor(n / 1000);
     const rem = n % 1000;
-    const thWord = (th === 1 ? 'వెయ్యి' : convertNumberToTeluguWords(th) + ' వేల');
-    return thWord + (rem > 0 ? ' ' + convertNumberToTeluguWords(rem) : '');
+    if (rem === 0) {
+      return th === 1 ? 'వెయ్యి' : convertNumberToTeluguWords(th) + ' వేలు';
+    } else {
+      const thWord = (th === 1 ? 'వెయ్యి' : convertNumberToTeluguWords(th) + ' వేల');
+      return thWord + ' ' + convertNumberToTeluguWords(rem);
+    }
   }
   
   return n.toLocaleString('te-IN');
