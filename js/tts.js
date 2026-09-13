@@ -404,7 +404,16 @@ class TeluguTTSEngine {
     window.activeUtterance = utterance;
     this.currentUtterance = utterance;
 
-    this.synth.speak(utterance);
+    try {
+      if (this.synth.paused) {
+        this.synth.resume();
+      }
+      this.synth.speak(utterance);
+    } catch (e) {
+      console.warn('SpeechSynthesis speak error:', e);
+      this.isSpeaking = false;
+      if (this.onStateChange) this.onStateChange('stopped');
+    }
   }
 
   pause() {

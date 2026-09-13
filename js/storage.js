@@ -94,6 +94,14 @@ const StorageManager = {
       const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost';
       const settings = saved ? { ...this.defaultSettings, ...JSON.parse(saved) } : this.defaultSettings;
+
+      // On GitHub Pages or hosted domains without local server, default to native browser speech engine
+      if (host.includes('github.io') || (host !== 'localhost' && host !== '127.0.0.1')) {
+        if (settings.ttsEngineMode === 'ai_server' && settings.aiServerUrl.includes('localhost')) {
+          settings.ttsEngineMode = 'browser';
+        }
+      }
+
       if (settings.aiServerUrl && host !== 'localhost' && settings.aiServerUrl.includes('localhost')) {
         settings.aiServerUrl = settings.aiServerUrl.replace('localhost', host);
       }
