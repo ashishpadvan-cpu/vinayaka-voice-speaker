@@ -133,10 +133,20 @@ class TeluguTTSEngine {
     return true;
   }
 
+  setVoice(voiceURI) {
+    if (!voiceURI) return;
+    this.selectedVoiceURI = voiceURI;
+  }
+
   selectVoiceForProfile(profileKey) {
     if (!this.synth) return null;
     this.voices = this.synth.getVoices();
     if (!this.voices || this.voices.length === 0) return null;
+
+    if (this.selectedVoiceURI) {
+      const explicitVoice = this.voices.find(v => v.voiceURI === this.selectedVoiceURI);
+      if (explicitVoice) return explicitVoice;
+    }
 
     const isMale = this.isMaleProfile(profileKey);
 
