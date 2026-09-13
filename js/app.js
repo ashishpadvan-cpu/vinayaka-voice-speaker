@@ -79,6 +79,16 @@ function ensureNameHasGaru(rawName) {
   return `${name} గారు`;
 }
 
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
 class AppUI {
   constructor() {
     this.activeTab = 'donor-tab';
@@ -133,6 +143,7 @@ class AppUI {
     this.announceDonorBtn = document.getElementById('announce-donor-btn');
     this.saveDonorBtn = document.getElementById('save-donor-btn');
     this.resetDonorBtn = document.getElementById('reset-donor-btn');
+    this.copyDonorBtn = document.getElementById('copy-donor-btn');
 
     // Custom Matter Form
     this.matterTitle = document.getElementById('matter-title');
@@ -369,6 +380,23 @@ class AppUI {
           if (window.ttsEngine) window.ttsEngine.speak(text, { anchorStyle: styleVal });
         } else {
           this.showToast(this.uiLang === 'en' ? 'Please enter donor name and amount' : 'దయచేసి దాత పేరు మరియు అమౌంట్ నమోదు చేయండి');
+        }
+      });
+    }
+
+    if (this.copyDonorBtn) {
+      this.copyDonorBtn.addEventListener('click', async () => {
+        const text = this.generateDonorTeluguText();
+        if (!text) {
+          this.showToast(this.uiLang === 'en' ? 'Nothing to copy yet' : 'కాపీ చేయడానికి మ్యాటర్ లేదు');
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(text);
+          this.showToast(this.uiLang === 'en' ? 'Announcement copied' : 'ఎనౌన్స్‌మెంట్ కాపీ అయింది');
+        } catch (err) {
+          this.showToast(this.uiLang === 'en' ? 'Copy failed' : 'కాపీ కాలేదు');
         }
       });
     }
@@ -700,7 +728,7 @@ class AppUI {
       };
       window.committeeSyncEngine.onStatusChange = (isOnline, info) => {
         if (this.syncStatusIndicator && info) {
-          const syncUrl = info.mobileSyncUrl || `http://${info.localIp}:8085`;
+          const syncUrl = info.mobileSyncUrl || window.committeeSyncEngine.serverUrl;
           this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#10b981;"></i> సింక్ ఇంజిన్ సిద్ధంగా ఉంది (${info.localIp})`;
           if (this.mobileSyncUrlLink) {
             this.mobileSyncUrlLink.href = syncUrl;
@@ -838,126 +866,6 @@ class AppUI {
       });
     }
 
-    // Settings Controls
-    this.speedRange.addEventListener('input', (e) => {
-      this.speedVal.textContent = e.target.value + 'x';
-      this.saveSettingsFromUI();
-    });
-
-    this.pitchRange.addEventListener('input', (e) => {
-      this.pitchVal.textContent = e.target.value;
-      this.saveSettingsFromUI();
-    });
-
-    this.chimeSelect.addEventListener('change', () => this.saveSettingsFromUI());
-    if (this.bgmSelect) this.bgmSelect.addEventListener('change', () => this.saveSettingsFromUI());
-    if (this.micEchoSelect) this.micEchoSelect.addEventListener('change', () => this.saveSettingsFromUI());
-    this.repeatSelect.addEventListener('change', () => {
-      const val = this.repeatSelect.value;
-      this.loopText.textContent = val === '999' ? 'Loop' : val + 'x';
-      this.saveSettingsFromUI();
-    });
-    this.voiceSelect.addEventListener('change', () => {
-      window.ttsEngine.setVoice(this.voiceSelect.value);
-      this.saveSettingsFromUI();
-    });
-
-    this.testVoiceBtn.addEventListener('click', () => {
-      window.ttsEngine.speak('అందరికీ నమస్కారం! శ్రీ వినాయక చవితి మైక్ టెస్టింగ్... 1 2 3.', { anchorStyle: this.anchorVoiceStyle.value });
-    });
-
-    // Main Player Bar controls
-    this.mainPlayBtn.addEventListener('click', () => {
-      if (window.ttsEngine.isSpeaking) {
-        if (window.ttsEngine.isPaused) {
-          window.ttsEngine.resume();
-        } else {
-          window.ttsEngine.pause();
-        }
-      } else {
-        if (this.activeTab === 'donor-tab') {
-          this.announceDonorBtn.click();
-        } else {
-          this.readCustomBtn.click();
-        }
-      }
-    });
-
-    this.mainStopBtn.addEventListener('click', () => {
-      window.ttsEngine.stop();
-    });
-
-    // TTS Engine callbacks
-    window.ttsEngine.onStateChange = (state) => this.handleTTSStateChange(state);
-    window.ttsEngine.onWordHighlight = (charIndex, charLength) => this.highlightSpokenWord(charIndex, charLength);
-
-    // Theme Toggle
-    this.themeToggle.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      this.themeToggle.innerHTML = next === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
-    });
-
-    // Language Toggle (English <-> Telugu UI)
-    this.langToggle.addEventListener('click', () => {
-      this.uiLang = this.uiLang === 'te' ? 'en' : 'te';
-      this.applyLanguageUI(this.uiLang);
-      this.saveSettingsFromUI();
-    });
-
-    // Committee Mobile Sync Modal Handlers
-    if (this.mobileSyncBtn) {
-      this.mobileSyncBtn.addEventListener('click', () => this.openMobileSyncModal());
-    }
-    if (this.closeMobileSyncModal) {
-      this.closeMobileSyncModal.addEventListener('click', () => {
-        if (this.mobileSyncModal) this.mobileSyncModal.style.display = 'none';
-      });
-    }
-    if (this.mobileSyncModal) {
-      this.mobileSyncModal.addEventListener('click', (e) => {
-        if (e.target === this.mobileSyncModal) this.mobileSyncModal.style.display = 'none';
-      });
-    }
-
-    // Connect CommitteeSyncEngine callbacks
-    if (window.committeeSyncEngine) {
-      window.committeeSyncEngine.onSyncUpdate = () => {
-        this.renderSavedItems();
-      };
-      window.committeeSyncEngine.onStatusChange = (isOnline, info) => {
-        if (this.syncStatusIndicator && info) {
-          const syncUrl = info.mobileSyncUrl || `http://${info.localIp}:8085`;
-          this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#10b981;"></i> సింక్ ఇంజిన్ సిద్ధంగా ఉంది (${info.localIp})`;
-          if (this.mobileSyncUrlLink) {
-            this.mobileSyncUrlLink.href = syncUrl;
-            this.mobileSyncUrlLink.textContent = syncUrl;
-          }
-        }
-      };
-      window.committeeSyncEngine.init();
-    }
-
-    // Search filter
-    if (this.searchInput) {
-      this.searchInput.addEventListener('input', () => this.renderSavedItems());
-    }
-
-    // Font size adjustments for preview text
-    document.getElementById('font-increase')?.addEventListener('click', () => {
-      const cur = parseFloat(window.getComputedStyle(this.customPreviewText).fontSize);
-      this.customPreviewText.style.fontSize = (cur + 2) + 'px';
-      this.donorPreviewText.style.fontSize = (cur + 2) + 'px';
-    });
-
-    document.getElementById('font-decrease')?.addEventListener('click', () => {
-      const cur = parseFloat(window.getComputedStyle(this.customPreviewText).fontSize);
-      if (cur > 12) {
-        this.customPreviewText.style.fontSize = (cur - 2) + 'px';
-        this.donorPreviewText.style.fontSize = (cur - 2) + 'px';
-      }
-    });
   }
 
   applyLanguageUI(lang) {
@@ -988,6 +896,124 @@ class AppUI {
     this.activeTab = tabId;
     this.tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
     this.tabViews.forEach(v => v.classList.toggle('active', v.id === tabId));
+  }
+
+  announceCurrentDonor() {
+    const text = this.generateDonorTeluguText();
+    if (text) {
+      const styleVal = this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male';
+      if (window.ttsEngine) window.ttsEngine.speak(text, { anchorStyle: styleVal });
+    } else {
+      this.showToast(this.uiLang === 'en' ? 'Please enter donor name and amount' : 'దయచేసి దాత పేరు మరియు అమౌంట్ నమోదు చేయండి');
+    }
+  }
+
+  saveCurrentDonor() {
+    const name = this.donorName ? this.donorName.value.trim() : '';
+    const amount = this.donorAmount ? this.donorAmount.value.trim() : '';
+    const item = this.donorItem ? this.donorItem.value.trim() : '';
+    const type = this.currentDonationType || 'cash';
+
+    if (!name) {
+      this.showToast(this.uiLang === 'en' ? 'Please enter donor name' : 'దయచేసి దాత పేరు నమోదు చేయండి');
+      return;
+    }
+    if (type === 'cash' && !amount) {
+      this.showToast(this.uiLang === 'en' ? 'Please enter donation amount' : 'దయచేసి చందా మొత్తం టైప్ చేయండి');
+      return;
+    }
+    if (type === 'item' && !item) {
+      this.showToast(this.uiLang === 'en' ? 'Please enter item details' : 'దయచేసి వస్తువు వివరాలు నమోదు చేయండి');
+      return;
+    }
+    if (type === 'both' && !amount && !item) {
+      this.showToast(this.uiLang === 'en' ? 'Please enter amount or item details' : 'దయచేసి నగదు లేదా వస్తువు వివరాలు నమోదు చేయండి');
+      return;
+    }
+
+    const text = this.generateDonorTeluguText();
+    const savedDonor = window.StorageManager ? window.StorageManager.saveDonor({
+      name: name,
+      donationType: type,
+      amount: amount,
+      itemDetails: item,
+      purpose: this.donorPurpose ? this.donorPurpose.value : '',
+      village: this.donorVillage ? this.donorVillage.value : '',
+      generatedText: text
+    }) : null;
+    if (window.committeeSyncEngine) {
+      window.committeeSyncEngine.pushDonorUpdate(savedDonor, 'save');
+    }
+    this.showToast(this.uiLang === 'en' ? 'Donor record saved & synced! 💾' : 'దాత వివరాలు సేవ్ అయ్యాయి & సింక్ అయ్యాయి! 💾');
+    this.renderSavedItems();
+  }
+
+  resetDonorForm() {
+    if (this.donorName) this.donorName.value = '';
+    if (this.donorAmount) this.donorAmount.value = '';
+    if (this.donorItem) this.donorItem.value = '';
+    if (this.donorVillage) this.donorVillage.value = '';
+    this.updateDonorPreview();
+  }
+
+  readCustomMatter() {
+    const text = this.customTextInput ? this.customTextInput.value.trim() : '';
+    if (text) {
+      const styleVal = this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male';
+      if (window.ttsEngine) window.ttsEngine.speak(text, { anchorStyle: styleVal });
+    } else {
+      this.showToast(this.uiLang === 'en' ? 'Please type Telugu text to announce' : 'దయచేసి మైక్‌లో చదవడానికి తెలుగు మ్యాటర్ రాయండి');
+    }
+  }
+
+  saveCustomMatter() {
+    const content = this.customTextInput ? this.customTextInput.value.trim() : '';
+    if (!content) {
+      this.showToast(this.uiLang === 'en' ? 'Please enter content' : 'దయచేసి టైప్ చేయండి');
+      return;
+    }
+    const title = (this.matterTitle && this.matterTitle.value.trim()) || 'ఎనౌన్స్‌మెంట్';
+    const savedMatter = window.StorageManager ? window.StorageManager.saveMatter(title, content) : null;
+    if (window.committeeSyncEngine) {
+      window.committeeSyncEngine.pushMatterUpdate(savedMatter, 'save');
+    }
+    this.showToast(this.uiLang === 'en' ? 'Matter saved & synced! 💾' : 'మ్యాటర్ సేవ్ అయింది & సింక్ అయింది! 💾');
+    this.renderSavedItems();
+  }
+
+  togglePlayPause() {
+    if (window.ttsEngine && window.ttsEngine.isSpeaking) {
+      if (window.ttsEngine.isPaused) {
+        window.ttsEngine.resume();
+      } else {
+        window.ttsEngine.pause();
+      }
+    } else {
+      if (this.activeTab === 'donor-tab') {
+        this.announceCurrentDonor();
+      } else {
+        this.readCustomMatter();
+      }
+    }
+  }
+
+  stopSpeech() {
+    if (window.ttsEngine) window.ttsEngine.stop();
+  }
+
+  toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    if (this.themeToggle) {
+      this.themeToggle.innerHTML = next === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+    }
+  }
+
+  toggleLanguage() {
+    this.uiLang = this.uiLang === 'te' ? 'en' : 'te';
+    this.applyLanguageUI(this.uiLang);
+    this.saveSettingsFromUI();
   }
 
   generateDonorTeluguText() {
@@ -1069,12 +1095,12 @@ class AppUI {
 
     words.forEach(chunk => {
       if (/\s+/.test(chunk)) {
-        html += chunk;
+        html += escapeHTML(chunk);
         charPos += chunk.length;
       } else {
         const start = charPos;
         const end = charPos + chunk.length;
-        html += `<span class="word-span" data-start="${start}" data-end="${end}">${chunk}</span>`;
+        html += `<span class="word-span" data-start="${start}" data-end="${end}">${escapeHTML(chunk)}</span>`;
         charPos += chunk.length;
       }
     });
@@ -1235,9 +1261,9 @@ class AppUI {
       if (item.itemType === 'donor') {
         let amountOrItemHtml = '';
         if (item.donationType === 'item' || (!item.amount && item.itemDetails)) {
-          amountOrItemHtml = `<div class="amount" style="color:var(--accent); font-size:1.02rem;"><i class="fa-solid fa-gift"></i> ${item.itemDetails}</div>`;
+          amountOrItemHtml = `<div class="amount" style="color:var(--accent); font-size:1.02rem;"><i class="fa-solid fa-gift"></i> ${escapeHTML(item.itemDetails)}</div>`;
         } else if (item.donationType === 'both') {
-          amountOrItemHtml = `<div class="amount">₹ ${parseFloat(item.amount).toLocaleString('en-IN')} <span style="font-size:0.85rem; color:var(--accent); margin-left:6px;"><i class="fa-solid fa-gift"></i> ${item.itemDetails}</span></div>`;
+          amountOrItemHtml = `<div class="amount">₹ ${parseFloat(item.amount).toLocaleString('en-IN')} <span style="font-size:0.85rem; color:var(--accent); margin-left:6px;"><i class="fa-solid fa-gift"></i> ${escapeHTML(item.itemDetails)}</span></div>`;
         } else {
           amountOrItemHtml = `<div class="amount">₹ ${parseFloat(item.amount).toLocaleString('en-IN')}</div>`;
         }
@@ -1245,15 +1271,15 @@ class AppUI {
         html += `
           <div class="donor-item-card">
             <div class="donor-info">
-              <h4>${item.name} <span class="badge">${this.uiLang === 'en' ? 'Donor' : 'దాత'}</span></h4>
+              <h4>${escapeHTML(item.name)} <span class="badge">${this.uiLang === 'en' ? 'Donor' : 'దాత'}</span></h4>
               ${amountOrItemHtml}
-              <div class="meta">${item.purpose} • ${new Date(item.timestamp).toLocaleDateString('te-IN')}</div>
+              <div class="meta">${escapeHTML(item.purpose)} • ${new Date(item.timestamp).toLocaleDateString('te-IN')}</div>
             </div>
             <div class="donor-actions">
               <button class="btn btn-accent btn-sm announce-saved-btn" data-text="${encodeURIComponent(item.generatedText)}">
                 <i class="fa-solid fa-bullhorn"></i> ${this.uiLang === 'en' ? 'Mic' : 'మైక్'}
               </button>
-              <button class="btn btn-danger btn-sm delete-saved-btn" data-id="${item.id}" data-type="donor">
+              <button class="btn btn-danger btn-sm delete-saved-btn" data-id="${encodeURIComponent(item.id)}" data-type="donor">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -1263,14 +1289,14 @@ class AppUI {
         html += `
           <div class="donor-item-card" style="border-left-color: var(--primary);">
             <div class="donor-info">
-              <h4>${item.title} <span class="badge" style="background:var(--accent-light); color:var(--accent);">${this.uiLang === 'en' ? 'Matter' : 'మ్యాటర్'}</span></h4>
-              <div class="meta" style="margin-top:6px;">${item.content.substring(0, 70)}...</div>
+              <h4>${escapeHTML(item.title)} <span class="badge" style="background:var(--accent-light); color:var(--accent);">${this.uiLang === 'en' ? 'Matter' : 'మ్యాటర్'}</span></h4>
+              <div class="meta" style="margin-top:6px;">${escapeHTML(item.content.substring(0, 70))}...</div>
             </div>
             <div class="donor-actions">
               <button class="btn btn-accent btn-sm announce-saved-btn" data-text="${encodeURIComponent(item.content)}">
                 <i class="fa-solid fa-play"></i> ${this.uiLang === 'en' ? 'Read' : 'చదువు'}
               </button>
-              <button class="btn btn-danger btn-sm delete-saved-btn" data-id="${item.id}" data-type="matter">
+              <button class="btn btn-danger btn-sm delete-saved-btn" data-id="${encodeURIComponent(item.id)}" data-type="matter">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -1290,7 +1316,7 @@ class AppUI {
 
     container.querySelectorAll('.delete-saved-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
+        const id = decodeURIComponent(btn.dataset.id || '');
         const type = btn.dataset.type;
         if (type === 'donor') {
           window.StorageManager.deleteDonor(id);
@@ -1309,7 +1335,7 @@ class AppUI {
     if (this.mobileSyncModal) {
       this.mobileSyncModal.style.display = 'flex';
       if (window.committeeSyncEngine && this.qrCodeContainer) {
-        const url = window.committeeSyncEngine.mobileSyncUrl || `http://${window.committeeSyncEngine.localIp || 'localhost'}:8085`;
+        const url = window.committeeSyncEngine.mobileSyncUrl || window.committeeSyncEngine.serverUrl;
         this.qrCodeContainer.innerHTML = window.committeeSyncEngine.generateQRCodeSVG(url, 180);
         if (this.mobileSyncUrlLink) {
           this.mobileSyncUrlLink.href = url;
@@ -1573,7 +1599,7 @@ class AppUI {
     candidates.forEach((cand, idx) => {
       html += `
         <div class="translit-candidate-item ${idx === 0 ? 'selected' : ''}" data-idx="${idx}">
-          <span>${cand}</span>
+          <span>${escapeHTML(cand)}</span>
           <span class="candidate-num">${idx + 1}</span>
         </div>
       `;

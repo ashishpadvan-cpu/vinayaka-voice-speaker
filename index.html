@@ -41,10 +41,10 @@
           <i class="fa-solid fa-keyboard"></i>
           <span id="translit-status-label" style="font-size:0.8rem;">Eng➔తెలుగు</span>
         </button>
-        <button id="theme-toggle" class="icon-btn" title="మాడ్ మార్చండి" aria-label="Toggle Theme">
+        <button id="theme-toggle" class="icon-btn" title="మాడ్ మార్చండి" aria-label="Toggle Theme" onclick="window.appUI && window.appUI.toggleTheme()">
           <i class="fa-solid fa-moon"></i>
         </button>
-        <button id="lang-toggle" class="icon-btn" title="భాష / Language" aria-label="Toggle UI Language">
+        <button id="lang-toggle" class="icon-btn" title="భాష / Language" aria-label="Toggle UI Language" onclick="window.appUI && window.appUI.toggleLanguage()">
           <span id="lang-label" style="font-size:0.85rem; font-weight:800;">EN</span>
         </button>
       </div>
@@ -54,19 +54,19 @@
   <!-- Navigation Tabs -->
   <nav class="nav-tabs-container">
     <div class="nav-tabs">
-      <button class="tab-btn active" data-tab="donor-tab">
+      <button class="tab-btn active" data-tab="donor-tab" onclick="window.appUI && window.appUI.switchTab('donor-tab')">
         <i class="fa-solid fa-hand-holding-dollar"></i>
         <span data-i18n="tabDonor">దాతల ఎనౌన్స్‌మెంట్</span>
       </button>
-      <button class="tab-btn" data-tab="custom-tab">
+      <button class="tab-btn" data-tab="custom-tab" onclick="window.appUI && window.appUI.switchTab('custom-tab')">
         <i class="fa-solid fa-pen-to-square"></i>
         <span data-i18n="tabCustom">స్వంత మ్యాటర్</span>
       </button>
-      <button class="tab-btn" data-tab="list-tab">
+      <button class="tab-btn" data-tab="list-tab" onclick="window.appUI && window.appUI.switchTab('list-tab')">
         <i class="fa-solid fa-list-check"></i>
         <span data-i18n="tabList">దాతల జాబితా & రికార్డులు</span>
       </button>
-      <button class="tab-btn" data-tab="settings-tab">
+      <button class="tab-btn" data-tab="settings-tab" onclick="window.appUI && window.appUI.switchTab('settings-tab')">
         <i class="fa-solid fa-sliders"></i>
         <span data-i18n="tabSettings">మైక్ సెట్టింగ్స్</span>
       </button>
@@ -98,7 +98,7 @@
 
             <div class="form-group">
               <label for="donor-name"><i class="fa-solid fa-user"></i> <span data-i18n="labelDonorName">దాత పేరు (Donor Name):</span></label>
-              <input type="text" id="donor-name" class="input-control" data-i18n-ph="phDonorName" placeholder="ఉదా: శ్రీ పి. రామారావు గారు" required autocomplete="off">
+              <input type="text" id="donor-name" class="input-control" data-i18n-ph="phDonorName" placeholder="ఉదా: శ్రీ పి. రామారావు గారు" autocomplete="off">
             </div>
 
             <div class="form-group" id="amount-input-group">
@@ -177,16 +177,16 @@
           </div>
 
           <div class="btn-group">
-            <button type="button" id="announce-donor-btn" class="btn btn-accent btn-block" style="font-size:1.1rem;">
+            <button type="button" id="announce-donor-btn" class="btn btn-accent btn-block" style="font-size:1.1rem;" onclick="window.appUI && window.appUI.announceCurrentDonor()">
               <i class="fa-solid fa-bullhorn"></i> <span data-i18n="btnAnnounceNow">ఇప్పుడే మైక్‌లో చెప్పండి (Announce Now)</span>
             </button>
-            <button type="button" id="save-donor-btn" class="btn btn-primary">
+            <button type="button" id="save-donor-btn" class="btn btn-primary" onclick="window.appUI && window.appUI.saveCurrentDonor()">
               <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btnSaveDonor">రికార్డు సేవ్ చేయి (Save Donor)</span>
             </button>
             <button type="button" id="tab1-toggle-bulk-btn" class="btn btn-secondary">
               <i class="fa-solid fa-list-check"></i> <span data-i18n="btnBulkEntry">📋 బల్క్ నమోదు</span>
             </button>
-            <button type="button" id="reset-donor-btn" class="btn btn-secondary">
+            <button type="button" id="reset-donor-btn" class="btn btn-secondary" onclick="window.appUI && window.appUI.resetDonorForm()">
               <i class="fa-solid fa-rotate-left"></i> <span data-i18n="btnClear">కొత్తది (Clear)</span>
             </button>
           </div>
@@ -513,11 +513,11 @@
       </div>
 
       <div class="controls-row">
-        <button id="main-stop-btn" class="stop-main-btn" title="ఆపు (Stop)">
+        <button id="main-stop-btn" class="stop-main-btn" title="ఆపు (Stop)" onclick="window.appUI && window.appUI.stopSpeech()">
           <i class="fa-solid fa-stop"></i>
         </button>
 
-        <button id="main-play-btn" class="play-main-btn" title="ప్లే / పాజ్ (Play/Pause)">
+        <button id="main-play-btn" class="play-main-btn" title="ప్లే / పాజ్ (Play/Pause)" onclick="window.appUI && window.appUI.togglePlayPause()">
           <i class="fa-solid fa-play"></i>
         </button>
 
@@ -578,9 +578,9 @@
   <script src="js/app.js?v=4"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        for (var r of regs) { r.unregister(); }
-      }).catch(function(){});
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').catch(function(){});
+      });
     }
   </script>
 </body>
