@@ -262,10 +262,12 @@ class AppUI {
     });
 
     // Anchor Voice selection update
-    this.anchorVoiceStyle.addEventListener('change', () => {
-      window.ttsEngine.setAnchorStyle(this.anchorVoiceStyle.value);
-      this.saveSettingsFromUI();
-    });
+    if (this.anchorVoiceStyle) {
+      this.anchorVoiceStyle.addEventListener('change', () => {
+        if (window.ttsEngine) window.ttsEngine.setAnchorStyle(this.anchorVoiceStyle.value);
+        this.saveSettingsFromUI();
+      });
+    }
 
     // Custom Celebrity Voice Upload & Feature Processing Handler (IndexedDB)
     if (this.uploadVoiceProfile) {
@@ -359,62 +361,69 @@ class AppUI {
     }
 
     // Donor Actions
-    this.announceDonorBtn.addEventListener('click', () => {
-      const text = this.generateDonorTeluguText();
-      if (text) {
-        window.ttsEngine.speak(text, { anchorStyle: this.anchorVoiceStyle.value });
-      } else {
-        this.showToast(this.uiLang === 'en' ? 'Please enter donor name and amount' : 'దయచేసి దాత పేరు మరియు అమౌంట్ నమోదు చేయండి');
-      }
-    });
-
-    this.saveDonorBtn.addEventListener('click', () => {
-      const name = this.donorName.value.trim();
-      const amount = this.donorAmount.value.trim();
-      const item = this.donorItem ? this.donorItem.value.trim() : '';
-      const type = this.currentDonationType;
-
-      if (!name) {
-        this.showToast(this.uiLang === 'en' ? 'Please enter donor name' : 'దయచేసి దాత పేరు నమోదు చేయండి');
-        return;
-      }
-      if (type === 'cash' && !amount) {
-        this.showToast(this.uiLang === 'en' ? 'Please enter donation amount' : 'దయచేసి చందా మొత్తం టైప్ చేయండి');
-        return;
-      }
-      if (type === 'item' && !item) {
-        this.showToast(this.uiLang === 'en' ? 'Please enter item details' : 'దయచేసి వస్తువు వివరాలు నమోదు చేయండి');
-        return;
-      }
-      if (type === 'both' && !amount && !item) {
-        this.showToast(this.uiLang === 'en' ? 'Please enter amount or item details' : 'దయచేసి నగదు లేదా వస్తువు వివరాలు నమోదు చేయండి');
-        return;
-      }
-
-      const text = this.generateDonorTeluguText();
-      const savedDonor = window.StorageManager.saveDonor({
-        name: name,
-        donationType: type,
-        amount: amount,
-        itemDetails: item,
-        purpose: this.donorPurpose.value,
-        village: this.donorVillage.value,
-        generatedText: text
+    if (this.announceDonorBtn) {
+      this.announceDonorBtn.addEventListener('click', () => {
+        const text = this.generateDonorTeluguText();
+        if (text) {
+          const styleVal = this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male';
+          if (window.ttsEngine) window.ttsEngine.speak(text, { anchorStyle: styleVal });
+        } else {
+          this.showToast(this.uiLang === 'en' ? 'Please enter donor name and amount' : 'దయచేసి దాత పేరు మరియు అమౌంట్ నమోదు చేయండి');
+        }
       });
-      if (window.committeeSyncEngine) {
-        window.committeeSyncEngine.pushDonorUpdate(savedDonor, 'save');
-      }
-      this.showToast(this.uiLang === 'en' ? 'Donor record saved & synced! 💾' : 'దాత వివరాలు సేవ్ అయ్యాయి & సింక్ అయ్యాయి! 💾');
-      this.renderSavedItems();
-    });
+    }
 
-    this.resetDonorBtn.addEventListener('click', () => {
-      this.donorName.value = '';
-      if (this.donorAmount) this.donorAmount.value = '';
-      if (this.donorItem) this.donorItem.value = '';
-      this.donorVillage.value = '';
-      this.updateDonorPreview();
-    });
+    if (this.saveDonorBtn) {
+      this.saveDonorBtn.addEventListener('click', () => {
+        const name = this.donorName ? this.donorName.value.trim() : '';
+        const amount = this.donorAmount ? this.donorAmount.value.trim() : '';
+        const item = this.donorItem ? this.donorItem.value.trim() : '';
+        const type = this.currentDonationType;
+
+        if (!name) {
+          this.showToast(this.uiLang === 'en' ? 'Please enter donor name' : 'దయచేసి దాత పేరు నమోదు చేయండి');
+          return;
+        }
+        if (type === 'cash' && !amount) {
+          this.showToast(this.uiLang === 'en' ? 'Please enter donation amount' : 'దయచేసి చందా మొత్తం టైప్ చేయండి');
+          return;
+        }
+        if (type === 'item' && !item) {
+          this.showToast(this.uiLang === 'en' ? 'Please enter item details' : 'దయచేసి వస్తువు వివరాలు నమోదు చేయండి');
+          return;
+        }
+        if (type === 'both' && !amount && !item) {
+          this.showToast(this.uiLang === 'en' ? 'Please enter amount or item details' : 'దయచేసి నగదు లేదా వస్తువు వివరాలు నమోదు చేయండి');
+          return;
+        }
+
+        const text = this.generateDonorTeluguText();
+        const savedDonor = window.StorageManager ? window.StorageManager.saveDonor({
+          name: name,
+          donationType: type,
+          amount: amount,
+          itemDetails: item,
+          purpose: this.donorPurpose ? this.donorPurpose.value : '',
+          village: this.donorVillage ? this.donorVillage.value : '',
+          generatedText: text
+        }) : null;
+        if (window.committeeSyncEngine) {
+          window.committeeSyncEngine.pushDonorUpdate(savedDonor, 'save');
+        }
+        this.showToast(this.uiLang === 'en' ? 'Donor record saved & synced! 💾' : 'దాత వివరాలు సేవ్ అయ్యాయి & సింక్ అయ్యాయి! 💾');
+        this.renderSavedItems();
+      });
+    }
+
+    if (this.resetDonorBtn) {
+      this.resetDonorBtn.addEventListener('click', () => {
+        if (this.donorName) this.donorName.value = '';
+        if (this.donorAmount) this.donorAmount.value = '';
+        if (this.donorItem) this.donorItem.value = '';
+        if (this.donorVillage) this.donorVillage.value = '';
+        this.updateDonorPreview();
+      });
+    }
 
     // Toggle Bulk Entry Box
     const toggleBulk = () => {
@@ -575,55 +584,218 @@ class AppUI {
         fullText += `${summaryStr}దాతలందరికీ ఉత్సవ నిర్వహణ కమిటీ తరఫున హృదయపూర్వక ధన్యవాదాలు!`;
 
         this.currentSpeakingText = fullText;
-        window.ttsEngine.speak(fullText, { anchorStyle: this.anchorVoiceStyle.value });
+        if (window.ttsEngine) window.ttsEngine.speak(fullText, { anchorStyle: this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male' });
         this.showToast(this.uiLang === 'en' ? 'Broadcasting complete donors list...' : 'అందరి దాతల వివరాలు మైక్‌లో ప్రసారమవుతున్నాయి...');
       });
     }
+
+    // Settings Controls
+    if (this.speedRange) {
+      this.speedRange.addEventListener('input', (e) => {
+        if (this.speedVal) this.speedVal.textContent = e.target.value + 'x';
+        this.saveSettingsFromUI();
+      });
+    }
+
+    if (this.pitchRange) {
+      this.pitchRange.addEventListener('input', (e) => {
+        if (this.pitchVal) this.pitchVal.textContent = e.target.value;
+        this.saveSettingsFromUI();
+      });
+    }
+
+    if (this.chimeSelect) this.chimeSelect.addEventListener('change', () => this.saveSettingsFromUI());
+    if (this.bgmSelect) this.bgmSelect.addEventListener('change', () => this.saveSettingsFromUI());
+    if (this.micEchoSelect) this.micEchoSelect.addEventListener('change', () => this.saveSettingsFromUI());
+    if (this.repeatSelect) {
+      this.repeatSelect.addEventListener('change', () => {
+        const val = this.repeatSelect.value;
+        if (this.loopText) this.loopText.textContent = val === '999' ? 'Loop' : val + 'x';
+        this.saveSettingsFromUI();
+      });
+    }
+    if (this.voiceSelect) {
+      this.voiceSelect.addEventListener('change', () => {
+        if (window.ttsEngine) window.ttsEngine.setVoice(this.voiceSelect.value);
+        this.saveSettingsFromUI();
+      });
+    }
+
+    if (this.testVoiceBtn) {
+      this.testVoiceBtn.addEventListener('click', () => {
+        const styleVal = this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male';
+        if (window.ttsEngine) window.ttsEngine.speak('అందరికీ నమస్కారం! శ్రీ వినాయక చవితి మైక్ టెస్టింగ్... 1 2 3.', { anchorStyle: styleVal });
+      });
+    }
+
+    // Main Player Bar controls
+    if (this.mainPlayBtn) {
+      this.mainPlayBtn.addEventListener('click', () => {
+        if (window.ttsEngine && window.ttsEngine.isSpeaking) {
+          if (window.ttsEngine.isPaused) {
+            window.ttsEngine.resume();
+          } else {
+            window.ttsEngine.pause();
+          }
+        } else {
+          if (this.activeTab === 'donor-tab') {
+            if (this.announceDonorBtn) this.announceDonorBtn.click();
+          } else {
+            if (this.readCustomBtn) this.readCustomBtn.click();
+          }
+        }
+      });
+    }
+
+    if (this.mainStopBtn) {
+      this.mainStopBtn.addEventListener('click', () => {
+        if (window.ttsEngine) window.ttsEngine.stop();
+      });
+    }
+
+    // TTS Engine callbacks
+    if (window.ttsEngine) {
+      window.ttsEngine.onStateChange = (state) => this.handleTTSStateChange(state);
+      window.ttsEngine.onWordHighlight = (charIndex, charLength) => this.highlightSpokenWord(charIndex, charLength);
+    }
+
+    // Theme Toggle
+    if (this.themeToggle) {
+      this.themeToggle.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        this.themeToggle.innerHTML = next === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+      });
+    }
+
+    // Language Toggle (English <-> Telugu UI)
+    if (this.langToggle) {
+      this.langToggle.addEventListener('click', () => {
+        this.uiLang = this.uiLang === 'te' ? 'en' : 'te';
+        this.applyLanguageUI(this.uiLang);
+        this.saveSettingsFromUI();
+      });
+    }
+
+    // Committee Mobile Sync Modal Handlers
+    if (this.mobileSyncBtn) {
+      this.mobileSyncBtn.addEventListener('click', () => this.openMobileSyncModal());
+    }
+    if (this.closeMobileSyncModal) {
+      this.closeMobileSyncModal.addEventListener('click', () => {
+        if (this.mobileSyncModal) this.mobileSyncModal.style.display = 'none';
+      });
+    }
+    if (this.mobileSyncModal) {
+      this.mobileSyncModal.addEventListener('click', (e) => {
+        if (e.target === this.mobileSyncModal) this.mobileSyncModal.style.display = 'none';
+      });
+    }
+
+    // Connect CommitteeSyncEngine callbacks
+    if (window.committeeSyncEngine) {
+      window.committeeSyncEngine.onSyncUpdate = () => {
+        this.renderSavedItems();
+      };
+      window.committeeSyncEngine.onStatusChange = (isOnline, info) => {
+        if (this.syncStatusIndicator && info) {
+          const syncUrl = info.mobileSyncUrl || `http://${info.localIp}:8085`;
+          this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#10b981;"></i> సింక్ ఇంజిన్ సిద్ధంగా ఉంది (${info.localIp})`;
+          if (this.mobileSyncUrlLink) {
+            this.mobileSyncUrlLink.href = syncUrl;
+            this.mobileSyncUrlLink.textContent = syncUrl;
+          }
+        }
+      };
+      window.committeeSyncEngine.init();
+    }
+
+    // Search filter
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', () => this.renderSavedItems());
+    }
+
+    // Font size adjustments for preview text
+    document.getElementById('font-increase')?.addEventListener('click', () => {
+      if (this.customPreviewText) {
+        const cur = parseFloat(window.getComputedStyle(this.customPreviewText).fontSize);
+        this.customPreviewText.style.fontSize = (cur + 2) + 'px';
+      }
+      if (this.donorPreviewText) {
+        const cur = parseFloat(window.getComputedStyle(this.donorPreviewText).fontSize);
+        this.donorPreviewText.style.fontSize = (cur + 2) + 'px';
+      }
+    });
+
+    document.getElementById('font-decrease')?.addEventListener('click', () => {
+      if (this.customPreviewText) {
+        const cur = parseFloat(window.getComputedStyle(this.customPreviewText).fontSize);
+        if (cur > 12) {
+          this.customPreviewText.style.fontSize = (cur - 2) + 'px';
+        }
+      }
+      if (this.donorPreviewText) {
+        const cur = parseFloat(window.getComputedStyle(this.donorPreviewText).fontSize);
+        if (cur > 12) {
+          this.donorPreviewText.style.fontSize = (cur - 2) + 'px';
+        }
+      }
+    });
 
     // Custom Matter Template Pills
     document.querySelectorAll('.template-pill').forEach(pill => {
       pill.addEventListener('click', (e) => {
         const key = e.target.dataset.template;
         if (PRESET_TEMPLATES[key]) {
-          this.matterTitle.value = PRESET_TEMPLATES[key].title;
-          this.customTextInput.value = PRESET_TEMPLATES[key].text;
+          if (this.matterTitle) this.matterTitle.value = PRESET_TEMPLATES[key].title;
+          if (this.customTextInput) this.customTextInput.value = PRESET_TEMPLATES[key].text;
           this.updateCustomPreview();
           this.showToast(this.uiLang === 'en' ? 'Template loaded!' : 'టెంప్లేట్ లోడ్ అయింది!');
         }
       });
     });
 
-    this.customTextInput.addEventListener('input', () => this.updateCustomPreview());
+    if (this.customTextInput) {
+      this.customTextInput.addEventListener('input', () => this.updateCustomPreview());
+    }
 
-    this.readCustomBtn.addEventListener('click', () => {
-      const text = this.customTextInput.value.trim();
-      if (text) {
-        window.ttsEngine.speak(text, { anchorStyle: this.anchorVoiceStyle.value });
-      } else {
-        this.showToast(this.uiLang === 'en' ? 'Please type Telugu text to announce' : 'దయచేసి మైక్‌లో చదవడానికి తెలుగు మ్యాటర్ రాయండి');
-      }
-    });
+    if (this.readCustomBtn) {
+      this.readCustomBtn.addEventListener('click', () => {
+        const text = this.customTextInput ? this.customTextInput.value.trim() : '';
+        if (text) {
+          const styleVal = this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male';
+          if (window.ttsEngine) window.ttsEngine.speak(text, { anchorStyle: styleVal });
+        } else {
+          this.showToast(this.uiLang === 'en' ? 'Please type Telugu text to announce' : 'దయచేసి మైక్‌లో చదవడానికి తెలుగు మ్యాటర్ రాయండి');
+        }
+      });
+    }
 
-    this.saveMatterBtn.addEventListener('click', () => {
-      const content = this.customTextInput.value.trim();
-      if (!content) {
-        this.showToast(this.uiLang === 'en' ? 'Please enter content' : 'దయచేసి టైప్ చేయండి');
-        return;
-      }
-      const title = this.matterTitle.value.trim() || 'ఎనౌన్స్‌మెంట్';
-      const savedMatter = window.StorageManager.saveMatter(title, content);
-      if (window.committeeSyncEngine) {
-        window.committeeSyncEngine.pushMatterUpdate(savedMatter, 'save');
-      }
-      this.showToast(this.uiLang === 'en' ? 'Matter saved & synced! 💾' : 'మ్యాటర్ సేవ్ అయింది & సింక్ అయింది! 💾');
-      this.renderSavedItems();
-    });
+    if (this.saveMatterBtn) {
+      this.saveMatterBtn.addEventListener('click', () => {
+        const content = this.customTextInput ? this.customTextInput.value.trim() : '';
+        if (!content) {
+          this.showToast(this.uiLang === 'en' ? 'Please enter content' : 'దయచేసి టైప్ చేయండి');
+          return;
+        }
+        const title = (this.matterTitle && this.matterTitle.value.trim()) || 'ఎనౌన్స్‌మెంట్';
+        const savedMatter = window.StorageManager ? window.StorageManager.saveMatter(title, content) : null;
+        if (window.committeeSyncEngine) {
+          window.committeeSyncEngine.pushMatterUpdate(savedMatter, 'save');
+        }
+        this.showToast(this.uiLang === 'en' ? 'Matter saved & synced! 💾' : 'మ్యాటర్ సేవ్ అయింది & సింక్ అయింది! 💾');
+        this.renderSavedItems();
+      });
+    }
 
-    this.clearCustomBtn.addEventListener('click', () => {
-      this.matterTitle.value = '';
-      this.customTextInput.value = '';
-      this.updateCustomPreview();
-    });
+    if (this.clearCustomBtn) {
+      this.clearCustomBtn.addEventListener('click', () => {
+        if (this.matterTitle) this.matterTitle.value = '';
+        if (this.customTextInput) this.customTextInput.value = '';
+        this.updateCustomPreview();
+      });
+    }
 
     // Method 3 AI Server Controls
     if (this.ttsEngineModeSelect) {
@@ -1440,6 +1612,19 @@ class AppUI {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.appUI = new AppUI();
-});
+function startAppUI() {
+  if (!window.appUI) {
+    try {
+      window.appUI = new AppUI();
+      console.log('✅ Vinayaka Voice Speaker App initialized!');
+    } catch (err) {
+      console.error('❌ AppUI initialization error:', err);
+    }
+  }
+}
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  startAppUI();
+} else {
+  document.addEventListener('DOMContentLoaded', startAppUI);
+}

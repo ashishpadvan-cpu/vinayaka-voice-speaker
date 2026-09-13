@@ -1,0 +1,14 @@
+__pycache__/
+*.mp3
+!chaganti_gari_matalu.mp3
+!demo_test.mp3
+!test_clean.mp3
+!test_female_natural.mp3
+!test_male_gen.mp3
+!test_male_natural.mp3
+!test_out.mp3
+
+node_modules/
+android/
+www/
+package-lock.json
