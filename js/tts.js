@@ -405,6 +405,7 @@ class TeluguTTSEngine {
     this.currentUtterance = utterance;
 
     try {
+      this.synth.cancel();
       if (this.synth.paused) {
         this.synth.resume();
       }

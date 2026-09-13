@@ -85,6 +85,27 @@ class AppUI {
     this.currentSpeakingText = '';
     this.uiLang = 'te';
     this.initElements();
+    
+    // Set default sample donor entries if empty so app responds immediately on tap
+    if (this.donorName && !this.donorName.value) {
+      this.donorName.value = 'పి. రామారావు';
+    }
+    if (this.donorAmount && !this.donorAmount.value) {
+      this.donorAmount.value = '1116';
+    }
+
+    // Unlock Web Speech API & Web Audio Context on mobile touch
+    const unlockMobileAudio = () => {
+      if (window.speechSynthesis && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+      if (window.voiceDSP && window.voiceDSP.audioCtx && window.voiceDSP.audioCtx.state === 'suspended') {
+        window.voiceDSP.audioCtx.resume();
+      }
+    };
+    document.addEventListener('touchstart', unlockMobileAudio, { passive: true });
+    document.addEventListener('click', unlockMobileAudio, { passive: true });
+
     this.setupTransliteration();
     this.bindEvents();
     this.loadSettings();
