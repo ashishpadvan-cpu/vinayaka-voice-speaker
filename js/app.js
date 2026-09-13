@@ -116,6 +116,22 @@ class AppUI {
     this.updateDonorPreview();
   }
 
+  addTapListener(el, callback) {
+    if (!el) return;
+    let handled = false;
+    el.addEventListener('touchstart', (e) => {
+      handled = true;
+      callback(e);
+    }, { passive: true });
+    el.addEventListener('click', (e) => {
+      if (handled) {
+        handled = false;
+        return;
+      }
+      callback(e);
+    });
+  }
+
   initElements() {
     // Navigation
     this.tabs = document.querySelectorAll('.tab-btn');
@@ -217,7 +233,7 @@ class AppUI {
   bindEvents() {
     // Tab switching
     this.tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
+      this.addTapListener(tab, () => {
         const target = tab.dataset.tab;
         this.switchTab(target);
       });
@@ -225,7 +241,7 @@ class AppUI {
 
     // Segmented donation type switcher
     this.donationTypeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
+      this.addTapListener(btn, () => {
         this.donationTypeBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.currentDonationType = btn.dataset.type;
@@ -246,7 +262,7 @@ class AppUI {
 
     // Preset Item Pills
     this.itemPills.forEach(pill => {
-      pill.addEventListener('click', () => {
+      this.addTapListener(pill, () => {
         if (this.donorItem) {
           this.donorItem.value = pill.dataset.item;
           this.donorItem.dispatchEvent(new Event('input', { bubbles: true }));
@@ -362,7 +378,7 @@ class AppUI {
 
     // Donor Actions
     if (this.announceDonorBtn) {
-      this.announceDonorBtn.addEventListener('click', () => {
+      this.addTapListener(this.announceDonorBtn, () => {
         const text = this.generateDonorTeluguText();
         if (text) {
           const styleVal = this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male';
@@ -374,7 +390,7 @@ class AppUI {
     }
 
     if (this.saveDonorBtn) {
-      this.saveDonorBtn.addEventListener('click', () => {
+      this.addTapListener(this.saveDonorBtn, () => {
         const name = this.donorName ? this.donorName.value.trim() : '';
         const amount = this.donorAmount ? this.donorAmount.value.trim() : '';
         const item = this.donorItem ? this.donorItem.value.trim() : '';
@@ -416,7 +432,7 @@ class AppUI {
     }
 
     if (this.resetDonorBtn) {
-      this.resetDonorBtn.addEventListener('click', () => {
+      this.addTapListener(this.resetDonorBtn, () => {
         if (this.donorName) this.donorName.value = '';
         if (this.donorAmount) this.donorAmount.value = '';
         if (this.donorItem) this.donorItem.value = '';
@@ -622,7 +638,7 @@ class AppUI {
     }
 
     if (this.testVoiceBtn) {
-      this.testVoiceBtn.addEventListener('click', () => {
+      this.addTapListener(this.testVoiceBtn, () => {
         const styleVal = this.anchorVoiceStyle ? this.anchorVoiceStyle.value : 'telugu_male';
         if (window.ttsEngine) window.ttsEngine.speak('అందరికీ నమస్కారం! శ్రీ వినాయక చవితి మైక్ టెస్టింగ్... 1 2 3.', { anchorStyle: styleVal });
       });
@@ -630,7 +646,7 @@ class AppUI {
 
     // Main Player Bar controls
     if (this.mainPlayBtn) {
-      this.mainPlayBtn.addEventListener('click', () => {
+      this.addTapListener(this.mainPlayBtn, () => {
         if (window.ttsEngine && window.ttsEngine.isSpeaking) {
           if (window.ttsEngine.isPaused) {
             window.ttsEngine.resume();
@@ -648,7 +664,7 @@ class AppUI {
     }
 
     if (this.mainStopBtn) {
-      this.mainStopBtn.addEventListener('click', () => {
+      this.addTapListener(this.mainStopBtn, () => {
         if (window.ttsEngine) window.ttsEngine.stop();
       });
     }
