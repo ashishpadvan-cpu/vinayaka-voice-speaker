@@ -1239,12 +1239,14 @@ class AppUI {
       });
     }
 
-    // Hide suggestion box on outside click
-    document.addEventListener('click', (e) => {
+    // Hide suggestion box on outside click or touch
+    const hideOnOutside = (e) => {
       if (this.suggestionBox && !this.suggestionBox.contains(e.target) && !targetInputs.includes(e.target)) {
         this.hideSuggestionBox();
       }
-    });
+    };
+    document.addEventListener('click', hideOnOutside);
+    document.addEventListener('touchstart', hideOnOutside, { passive: true });
   }
 
   updateTransliterationUIState() {
@@ -1387,10 +1389,13 @@ class AppUI {
     this.suggestionBox.innerHTML = html;
 
     this.suggestionBox.querySelectorAll('.translit-candidate-item').forEach(item => {
-      item.addEventListener('click', () => {
+      const handlePick = (e) => {
+        e.preventDefault();
         const idx = parseInt(item.dataset.idx, 10);
         if (onSelect) onSelect(candidates[idx]);
-      });
+      };
+      item.addEventListener('click', handlePick);
+      item.addEventListener('touchstart', handlePick, { passive: false });
     });
   }
 
