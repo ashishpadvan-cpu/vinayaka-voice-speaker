@@ -71,7 +71,8 @@ window.indexedDBAudioStore = new IndexedDBAudioStore();
 
 const StorageManager = {
   get defaultSettings() {
-    const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+    const isLocal = (typeof window !== 'undefined' && window.location && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
     return {
       rate: 0.95,
       pitch: 1.0,
@@ -85,7 +86,8 @@ const StorageManager = {
       theme: 'dark',
       uiLang: 'te',
       ttsEngineMode: 'browser',
-      aiServerUrl: `http://${host}:5005/api/generate-voice`
+      aiServerUrl: isLocal ? 'http://localhost:5005/api/generate-voice' : '',
+      syncServerUrl: isLocal ? 'http://localhost:5005' : ''
     };
   },
 
@@ -93,16 +95,19 @@ const StorageManager = {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+      const isLocal = (host === 'localhost' || host === '127.0.0.1');
+      const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
       const settings = saved ? { ...this.defaultSettings, ...JSON.parse(saved) } : this.defaultSettings;
 
       // On GitHub Pages or hosted domains without local server, default to native browser speech engine
-      if (host.includes('github.io') || (host !== 'localhost' && host !== '127.0.0.1')) {
-        if (settings.ttsEngineMode === 'ai_server' && settings.aiServerUrl.includes('localhost')) {
+      if (!isLocal && !isIp) {
+        if (settings.ttsEngineMode === 'ai_server' && (!settings.aiServerUrl || settings.aiServerUrl.includes('localhost') || settings.aiServerUrl.includes('github.io'))) {
           settings.ttsEngineMode = 'browser';
         }
       }
 
-      if (settings.aiServerUrl && host !== 'localhost' && settings.aiServerUrl.includes('localhost')) {
+      // Only substitute localhost if host is a local network IP address (e.g., 192.168.x.x)
+      if (settings.aiServerUrl && isIp && settings.aiServerUrl.includes('localhost')) {
         settings.aiServerUrl = settings.aiServerUrl.replace('localhost', host);
       }
       return settings;
@@ -158,8 +163,9 @@ const StorageManager = {
 
   saveDonor(donor) {
     const donors = this.getDonors();
+    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
     const newEntry = {
-      id: 'donor_' + Date.now(),
+      id: donor.id || ('donor_' + Date.now() + '_' + uniqueSuffix),
       name: donor.name.trim(),
       donationType: donor.donationType || 'cash',
       amount: parseFloat(donor.amount) || 0,
@@ -191,8 +197,9 @@ const StorageManager = {
 
   saveMatter(title, content, category = 'సాధారణ') {
     const matters = this.getMatters();
+    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
     const newEntry = {
-      id: 'matter_' + Date.now(),
+      id: 'matter_' + Date.now() + '_' + uniqueSuffix,
       title: title.trim() || 'ఎనౌన్స్‌మెంట్ ' + (matters.length + 1),
       content: content.trim(),
       category: category,

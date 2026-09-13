@@ -1,4 +1,4 @@
-const CACHE_NAME = 'telugu-mic-v4-clean';
+const CACHE_NAME = 'telugu-mic-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -27,7 +27,7 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
     }).then(() => self.clients.claim())
   );

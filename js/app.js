@@ -221,8 +221,17 @@ class AppUI {
     this.mobileSyncModal = document.getElementById('mobile-sync-modal');
     this.closeMobileSyncModal = document.getElementById('close-mobile-sync-modal');
     this.qrCodeContainer = document.getElementById('qr-code-container');
+    this.localQrCodeContainer = document.getElementById('local-qr-code-container');
     this.mobileSyncUrlLink = document.getElementById('mobile-sync-url-link');
     this.syncStatusIndicator = document.getElementById('sync-status-indicator');
+    this.syncTabWebBtn = document.getElementById('sync-tab-web-btn');
+    this.syncTabServerBtn = document.getElementById('sync-tab-server-btn');
+    this.syncWebSection = document.getElementById('sync-web-section');
+    this.syncServerSection = document.getElementById('sync-server-section');
+    this.copyWebUrlBtn = document.getElementById('copy-web-url-btn');
+    this.shareWhatsappBtn = document.getElementById('share-whatsapp-btn');
+    this.customSyncUrlInput = document.getElementById('custom-sync-url-input');
+    this.testSyncConnBtn = document.getElementById('test-sync-conn-btn');
   }
 
   bindEvents() {
@@ -721,18 +730,81 @@ class AppUI {
       });
     }
 
+    // Modal Sub-tabs (Web App vs Local Wi-Fi Sync)
+    if (this.syncTabWebBtn && this.syncTabServerBtn) {
+      this.syncTabWebBtn.addEventListener('click', () => {
+        this.syncTabWebBtn.style.background = 'var(--accent)';
+        this.syncTabWebBtn.style.color = '#000';
+        this.syncTabServerBtn.style.background = 'transparent';
+        this.syncTabServerBtn.style.color = 'var(--text-muted)';
+        if (this.syncWebSection) this.syncWebSection.style.display = 'block';
+        if (this.syncServerSection) this.syncServerSection.style.display = 'none';
+      });
+
+      this.syncTabServerBtn.addEventListener('click', () => {
+        this.syncTabServerBtn.style.background = 'var(--accent)';
+        this.syncTabServerBtn.style.color = '#000';
+        this.syncTabWebBtn.style.background = 'transparent';
+        this.syncTabWebBtn.style.color = 'var(--text-muted)';
+        if (this.syncWebSection) this.syncWebSection.style.display = 'none';
+        if (this.syncServerSection) this.syncServerSection.style.display = 'block';
+      });
+    }
+
+    // Copy web app link
+    if (this.copyWebUrlBtn) {
+      this.copyWebUrlBtn.addEventListener('click', async () => {
+        const url = (window.committeeSyncEngine && window.committeeSyncEngine.getWebAppUrl()) || window.location.href;
+        try {
+          await navigator.clipboard.writeText(url);
+          this.showToast(this.uiLang === 'en' ? 'App link copied to clipboard! 📋' : 'యాప్ లింక్ కాపీ చేయబడింది! 📋');
+        } catch (e) {
+          this.showToast(url);
+        }
+      });
+    }
+
+    // Test Local Wi-Fi Sync Connection
+    if (this.testSyncConnBtn) {
+      this.testSyncConnBtn.addEventListener('click', async () => {
+        const inputUrl = this.customSyncUrlInput ? this.customSyncUrlInput.value.trim() : '';
+        if (!inputUrl) {
+          this.showToast(this.uiLang === 'en' ? 'Please enter server URL' : 'దయచేసి సర్వర్ URL ఎంటర్ చేయండి');
+          return;
+        }
+        this.showToast(this.uiLang === 'en' ? 'Testing connection...' : 'కనెక్షన్ చెక్ చేస్తోంది...');
+        if (window.committeeSyncEngine) {
+          window.committeeSyncEngine.setServerUrl(inputUrl);
+          const res = await window.committeeSyncEngine.testConnection(inputUrl);
+          if (res.success) {
+            this.showToast(this.uiLang === 'en' ? 'Connected to Committee Sync Server! 🟢' : 'కమిటీ సింక్ సర్వర్‌కి కనెక్ట్ అయింది! 🟢');
+            if (this.syncStatusIndicator) {
+              this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#10b981;"></i> కనెక్ట్ అయింది (${res.info?.localIp || inputUrl})`;
+            }
+            if (this.localQrCodeContainer) {
+              this.localQrCodeContainer.innerHTML = window.committeeSyncEngine.generateQRCodeSVG(inputUrl, 150);
+            }
+          } else {
+            this.showToast(this.uiLang === 'en' ? `Connection failed: ${res.message}` : `కనెక్ట్ కాలేదు: ${res.message}`);
+            if (this.syncStatusIndicator) {
+              this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#ef4444;"></i> ఆఫ్‌లైన్ (${res.message})`;
+            }
+          }
+        }
+      });
+    }
+
     // Connect CommitteeSyncEngine callbacks
     if (window.committeeSyncEngine) {
       window.committeeSyncEngine.onSyncUpdate = () => {
         this.renderSavedItems();
       };
       window.committeeSyncEngine.onStatusChange = (isOnline, info) => {
-        if (this.syncStatusIndicator && info) {
-          const syncUrl = info.mobileSyncUrl || window.committeeSyncEngine.serverUrl;
-          this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#10b981;"></i> సింక్ ఇంజిన్ సిద్ధంగా ఉంది (${info.localIp})`;
-          if (this.mobileSyncUrlLink) {
-            this.mobileSyncUrlLink.href = syncUrl;
-            this.mobileSyncUrlLink.textContent = syncUrl;
+        if (this.syncStatusIndicator) {
+          if (isOnline && info) {
+            this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#10b981;"></i> కనెక్ట్ అయింది (${info.localIp || 'Online'})`;
+          } else {
+            this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#ef4444;"></i> ఆఫ్‌లైన్ (Local Server Not Connected)`;
           }
         }
       };
@@ -1334,12 +1406,36 @@ class AppUI {
   openMobileSyncModal() {
     if (this.mobileSyncModal) {
       this.mobileSyncModal.style.display = 'flex';
-      if (window.committeeSyncEngine && this.qrCodeContainer) {
-        const url = window.committeeSyncEngine.mobileSyncUrl || window.committeeSyncEngine.serverUrl;
-        this.qrCodeContainer.innerHTML = window.committeeSyncEngine.generateQRCodeSVG(url, 180);
-        if (this.mobileSyncUrlLink) {
-          this.mobileSyncUrlLink.href = url;
-          this.mobileSyncUrlLink.textContent = url;
+      
+      const webUrl = (window.committeeSyncEngine && window.committeeSyncEngine.getWebAppUrl()) || window.location.href;
+      
+      if (this.qrCodeContainer && window.committeeSyncEngine) {
+        this.qrCodeContainer.innerHTML = window.committeeSyncEngine.generateQRCodeSVG(webUrl, 175);
+      }
+      if (this.mobileSyncUrlLink) {
+        this.mobileSyncUrlLink.href = webUrl;
+        this.mobileSyncUrlLink.textContent = webUrl;
+      }
+      if (this.shareWhatsappBtn) {
+        const shareText = encodeURIComponent(`🙏 వినాయక చవితి మైక్ ఎనౌన్స్‌మెంట్స్ & తెలుగు వాచకం యాప్ లింక్:\n${webUrl}`);
+        this.shareWhatsappBtn.href = `https://api.whatsapp.com/send?text=${shareText}`;
+      }
+
+      // Initialize local server tab values
+      if (window.committeeSyncEngine) {
+        const curServer = window.committeeSyncEngine.serverUrl || '';
+        if (this.customSyncUrlInput && !this.customSyncUrlInput.value) {
+          this.customSyncUrlInput.value = curServer;
+        }
+        if (this.localQrCodeContainer && curServer) {
+          this.localQrCodeContainer.innerHTML = window.committeeSyncEngine.generateQRCodeSVG(curServer, 150);
+        }
+        if (this.syncStatusIndicator) {
+          if (window.committeeSyncEngine.isOnline) {
+            this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#10b981;"></i> సింక్ కనెక్ట్ అయింది (${window.committeeSyncEngine.localIp || curServer})`;
+          } else {
+            this.syncStatusIndicator.innerHTML = `<i class="fa-solid fa-circle-dot" style="color:#ef4444;"></i> ఆఫ్‌లైన్ (Local Server Not Connected)`;
+          }
         }
       }
     }

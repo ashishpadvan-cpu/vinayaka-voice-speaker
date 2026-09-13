@@ -4,7 +4,8 @@
   "description": "",
   "main": "sw.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sync-www": "cp index.html sw.js manifest.json shared_donors.json shared_matters.json www/ && cp -r js css assets www/ && npx cap copy"
   },
   "repository": {
     "type": "git",

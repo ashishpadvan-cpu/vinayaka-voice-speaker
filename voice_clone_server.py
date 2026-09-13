@@ -16,9 +16,11 @@ import time
 import urllib.request
 import urllib.parse
 from io import BytesIO
+from pathlib import Path
 
 PORT = 5005
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+WEB_DIR = os.path.join(DATA_DIR, "www")
 DONORS_FILE = os.path.join(DATA_DIR, "shared_donors.json")
 MATTERS_FILE = os.path.join(DATA_DIR, "shared_matters.json")
 
@@ -66,6 +68,16 @@ SHARED_MATTERS = load_json_file(MATTERS_FILE, [])
 LAST_UPDATE_TIME = time.time()
 
 class VoiceCloneRequestHandler(http.server.BaseHTTPRequestHandler):
+    WEB_MIME_TYPES = {
+        ".html": "text/html; charset=utf-8",
+        ".css": "text/css; charset=utf-8",
+        ".js": "application/javascript; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+        ".png": "image/png",
+        ".mp3": "audio/mpeg",
+        ".ico": "image/x-icon",
+        ".svg": "image/svg+xml"
+    }
 
     def _set_cors_headers(self, status=200, content_type="application/json"):
         self.send_response(status)
@@ -75,8 +87,41 @@ class VoiceCloneRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_header('Content-Type', content_type)
         self.end_headers()
 
+    def _serve_static_file(self, url_path):
+        if url_path == '/' or not url_path:
+            url_path = '/index.html'
+
+        relative_path = urllib.parse.unquote(url_path).lstrip('/')
+        
+        # Check project root first (where tracked files live)
+        root_dir = Path(DATA_DIR).resolve()
+        candidate_path = (root_dir / relative_path).resolve()
+
+        # Check www as fallback
+        www_dir = Path(WEB_DIR).resolve()
+        www_candidate_path = (www_dir / relative_path).resolve()
+
+        file_path = None
+        if (root_dir in candidate_path.parents or candidate_path == root_dir) and candidate_path.is_file():
+            file_path = candidate_path
+        elif (www_dir in www_candidate_path.parents or www_candidate_path == www_dir) and www_candidate_path.is_file():
+            file_path = www_candidate_path
+
+        if not file_path:
+            self._set_cors_headers(404, "application/json")
+            self.wfile.write(json.dumps({"error": f"File not found: {relative_path}"}).encode('utf-8'))
+            return
+
+        content_type = self.WEB_MIME_TYPES.get(file_path.suffix.lower(), "application/octet-stream")
+        self._set_cors_headers(200, content_type)
+        with open(file_path, 'rb') as f:
+            self.wfile.write(f.read())
+
     def do_OPTIONS(self):
         self._set_cors_headers(200)
+
+    def do_HEAD(self):
+        self._set_cors_headers(200, "text/html; charset=utf-8")
 
     def do_GET(self):
         global SHARED_DONORS, SHARED_MATTERS, LAST_UPDATE_TIME
@@ -92,7 +137,7 @@ class VoiceCloneRequestHandler(http.server.BaseHTTPRequestHandler):
                 "message": "Open-Source AI Voice Server & Mobile Sync Ready! 🤖📱",
                 "supportedProfiles": ["telugu_male", "telugu_female"],
                 "localIp": local_ip,
-                "mobileSyncUrl": f"http://{local_ip}:8085"
+                "mobileSyncUrl": f"http://{local_ip}:{PORT}"
             }
             self.wfile.write(json.dumps(status_data).encode('utf-8'))
 
@@ -104,7 +149,7 @@ class VoiceCloneRequestHandler(http.server.BaseHTTPRequestHandler):
                 "donors": SHARED_DONORS,
                 "matters": SHARED_MATTERS,
                 "localIp": local_ip,
-                "mobileSyncUrl": f"http://{local_ip}:8085",
+                "mobileSyncUrl": f"http://{local_ip}:{PORT}",
                 "serverPort": PORT
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
@@ -113,9 +158,9 @@ class VoiceCloneRequestHandler(http.server.BaseHTTPRequestHandler):
             self._set_cors_headers(200, "application/json")
             info = {
                 "localIp": local_ip,
-                "webPort": 8085,
+                "webPort": PORT,
                 "syncPort": PORT,
-                "mobileSyncUrl": f"http://{local_ip}:8085",
+                "mobileSyncUrl": f"http://{local_ip}:{PORT}",
                 "donorCount": len(SHARED_DONORS),
                 "matterCount": len(SHARED_MATTERS),
                 "timestamp": LAST_UPDATE_TIME
@@ -123,8 +168,7 @@ class VoiceCloneRequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(info).encode('utf-8'))
 
         else:
-            self._set_cors_headers(404, "application/json")
-            self.wfile.write(json.dumps({"error": "Endpoint not found"}).encode('utf-8'))
+            self._serve_static_file(parsed_path.path)
 
     def do_POST(self):
         global SHARED_DONORS, SHARED_MATTERS, LAST_UPDATE_TIME
@@ -212,6 +256,11 @@ class VoiceCloneRequestHandler(http.server.BaseHTTPRequestHandler):
                         SHARED_MATTERS[existing_idx] = matter
                     else:
                         SHARED_MATTERS.insert(0, matter)
+
+            save_json_file(MATTERS_FILE, SHARED_MATTERS)
+            LAST_UPDATE_TIME = time.time()
+            self._set_cors_headers(200, "application/json")
+            self.wfile.write(json.dumps({"status": "success", "matters": SHARED_MATTERS, "timestamp": LAST_UPDATE_TIME}).encode('utf-8'))
 
         elif parsed_path.path == '/api/sync/bulk_matters':
             new_matters = data.get('matters', [])
@@ -315,7 +364,7 @@ def run_server():
     with socketserver.TCPServer(("", PORT), VoiceCloneRequestHandler) as httpd:
         print(f"🚀 [Method 3 AI Voice & Mobile Sync Server] Running at http://localhost:{PORT}")
         print(f"🌐 Local Wi-Fi Mobile Sync IP: http://{local_ip}:{PORT}")
-        print(f"📱 Committee Mobile App Link: http://{local_ip}:8085")
+        print(f"📱 Committee Mobile App Link: http://{local_ip}:{PORT}")
         print(f"📡 API Health Endpoint: http://localhost:{PORT}/api/health")
         print(f"🎙️ API Synthesis Endpoint: http://localhost:{PORT}/api/generate-voice")
         print(f"🔄 Real-time Mobile Sync Endpoint: http://localhost:{PORT}/api/sync/data")
